@@ -100,7 +100,7 @@ public class RssJobSource
                         string.IsNullOrWhiteSpace(link))
                         continue;
 
-                    // äÍÊÇÌ ÊÇÑíÎ äÔÑ ãÚÑæİ æÍÏíË.
+                    
                     if (!DateTimeOffset.TryParse(
                         pubDate, out var parsedDate))
                         continue;
