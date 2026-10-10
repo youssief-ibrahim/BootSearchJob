@@ -42,6 +42,8 @@ public class RssJobSource
 
         foreach (var feed in feeds)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var sourceName = feed.Key;
             var feedUrl = feed.Value;
 
@@ -80,6 +82,7 @@ public class RssJobSource
                     _logger.LogWarning(
                         "RSS channel not found for {Source}",
                         sourceName);
+
                     continue;
                 }
 
@@ -98,25 +101,29 @@ public class RssJobSource
 
                     if (string.IsNullOrWhiteSpace(title) ||
                         string.IsNullOrWhiteSpace(link))
+                    {
                         continue;
+                    }
 
-                    
                     if (!DateTimeOffset.TryParse(
                         pubDate, out var parsedDate))
+                    {
                         continue;
+                    }
 
                     var publishedAt = parsedDate.UtcDateTime;
 
                     if (publishedAt < cutoffTime ||
                         publishedAt > DateTime.UtcNow.AddMinutes(5))
+                    {
                         continue;
+                    }
 
-                    bool isLinkedInPost =
-                        sourceName.Equals(
-                            "LinkedInPosts",
-                            StringComparison.OrdinalIgnoreCase);
+                    var isLinkedInPost = sourceName.Equals(
+                        "LinkedInPosts",
+                        StringComparison.OrdinalIgnoreCase);
 
-                    bool isRelevant = isLinkedInPost
+                    var isRelevant = isLinkedInPost
                         ? IsRelevantLinkedInPost(title)
                         : IsRelevantJob(title);
 
@@ -125,8 +132,8 @@ public class RssJobSource
 
                     jobs.Add(new JobPosting
                     {
-                        Title = title,
-                        Url = link,
+                        Title = title.Trim(),
+                        Url = NormalizeUrl(link),
                         Source = sourceName,
                         PublishedAt = publishedAt
                     });
@@ -153,10 +160,10 @@ public class RssJobSource
             }
         }
 
-        // ãäÚ ÊßÑÇÑ ÇáÑÇÈØ äÝÓå.
+        // ÅÒÇáÉ ÇáÑæÇÈØ ÇáãßÑÑÉ Èíä ãÕÇÏÑ RSS ÇáãÎÊáÝÉ.
         var uniqueJobs = jobs
             .GroupBy(
-                job => job.Url.Trim(),
+                job => NormalizeUrl(job.Url),
                 StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .ToList();
@@ -166,6 +173,11 @@ public class RssJobSource
             uniqueJobs.Count);
 
         return uniqueJobs;
+    }
+
+    private static string NormalizeUrl(string url)
+    {
+        return url.Trim().TrimEnd('/');
     }
 
     private static string? GetElementValue(
