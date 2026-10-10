@@ -6,15 +6,19 @@ on:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check-jobs:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     env:
       JobHunter__RunOnce: "true"
-      ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION }}
-      Telegram__BotToken: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      Telegram__ChatId: ${{ secrets.TELEGRAM_CHAT_ID }}
+      ConnectionStrings__DefaultConnection: ${{ Server=db72749.public.databaseasp.net; Database=db72749; User Id=db72749; Password=rJ#4Q7a-i@6N; Encrypt=True; TrustServerCertificate=True; MultipleActiveResultSets=True; }}
+      Telegram__BotToken: ${{ 8955446722:AAED-YhbhP0LwJmbYk6zCL6sy813lk7TfEE }}
+      Telegram__ChatId: ${{ 1926291899 }}
 
     steps:
       - name: Checkout repository
@@ -23,13 +27,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.4"
+          dotnet-version: "9.0.x"
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore DotNetJobHunter.csproj
 
       - name: Build project
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build DotNetJobHunter.csproj --configuration Release --no-restore
 
       - name: Run Job Hunter once
-        run: dotnet run --configuration Release --no-build
+        run: dotnet run --project DotNetJobHunter.csproj --configuration Release --no-build
