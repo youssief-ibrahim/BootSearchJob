@@ -12,13 +12,13 @@ permissions:
 jobs:
   check-jobs:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     env:
       JobHunter__RunOnce: "true"
-      ConnectionStrings__DefaultConnection: ${{ Server=db72749.databaseasp.net; Database=db72749; User Id=db72749; Password=rJ#4Q7a-i@6N; Encrypt=False; MultipleActiveResultSets=True; }}
-      Telegram__BotToken: ${{ 8955446722:AAED-YhbhP0LwJmbYk6zCL6sy813lk7TfEE }}
-      Telegram__ChatId: ${{ 1926291899 }}
+      ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION }}
+      Telegram__BotToken: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      Telegram__ChatId: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
       - name: Checkout repository
