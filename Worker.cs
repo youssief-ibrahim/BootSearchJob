@@ -12,17 +12,21 @@ public class Worker : BackgroundService
     private readonly TelegramService _telegram;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<Worker> _logger;
+    private readonly bool _runOnce;
 
     public Worker(
         RssJobSource jobSource,
         TelegramService telegram,
         IServiceScopeFactory scopeFactory,
-        ILogger<Worker> logger)
+        ILogger<Worker> logger,
+        IConfiguration configuration)
     {
         _jobSource = jobSource;
         _telegram = telegram;
         _scopeFactory = scopeFactory;
         _logger = logger;
+
+        _runOnce = configuration.GetValue<bool>("JobHunter:RunOnce");
     }
 
     protected override async Task ExecuteAsync(
@@ -30,7 +34,7 @@ public class Worker : BackgroundService
     {
         _logger.LogInformation("DotNet Job Hunter started.");
 
-        while (!stoppingToken.IsCancellationRequested)
+        do
         {
             try
             {
@@ -44,12 +48,21 @@ public class Worker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to check jobs.");
+
+                if (_runOnce)
+                    throw;
             }
+
+            if (_runOnce || stoppingToken.IsCancellationRequested)
+                break;
 
             await Task.Delay(
                 TimeSpan.FromMinutes(5),
                 stoppingToken);
-        }
+
+        } while (!stoppingToken.IsCancellationRequested);
+
+        _logger.LogInformation("DotNet Job Hunter finished.");
     }
 
     private async Task CheckJobsAsync(
@@ -64,6 +77,8 @@ public class Worker : BackgroundService
 
         foreach (var job in jobs)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var exists = await db.Jobs
                 .AnyAsync(j => j.Url == job.Url, cancellationToken);
 
@@ -87,6 +102,11 @@ public class Worker : BackgroundService
 
                 _logger.LogInformation(
                     "Notification sent for {Title}", job.Title);
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
